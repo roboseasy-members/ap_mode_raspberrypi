@@ -27,6 +27,10 @@ bash ap_mode.sh        # 어디서든 동작 (sh ap_mode.sh, ./ap_mode.sh, sudo 
 | 2 Stop AP mode | 저장된 와이파이로 복귀, 또는 새 와이파이 입력 |
 | 3 Show status | 현재 모드·SSID·IP·접속 기기 수 |
 
+- 비밀번호가 8자 미만이거나 두 번 입력이 다르면 경고창이 뜨고 다시 입력받는다
+- 마지막 확인(Apply now) 후 **전환 직전에 SSID·Pi IP·접속 명령을 터미널에 출력**한다
+  (와이파이 SSH가 끊겨도 화면에 남는다)
+
 접속: 노트북/폰을 AP에 연결 → `ssh roboseasy@192.168.4.1`
 
 ## 비대화식
