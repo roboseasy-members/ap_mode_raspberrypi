@@ -563,8 +563,10 @@ tui() {
 	whiptail --title "${TUI_TITLE}" "$@" 3>&1 1>&2 2>&3
 }
 
+# 항상 터미널(/dev/tty)에 그린다 - $( ) 안에서 불리면 화면이 캡처돼
+# 안 보인 채 Enter만 기다리는(멈춘 것처럼 보이는) 버그가 있었다.
 tui_message() {
-	whiptail --title "${TUI_TITLE}" --msgbox "$1" 16 72
+	whiptail --title "${TUI_TITLE}" --msgbox "$1" 16 72 >/dev/tty
 }
 
 tui_ensure_dependencies() {
@@ -576,20 +578,24 @@ tui_ensure_dependencies() {
 	install_dependencies
 }
 
+# 결과는 TUI_PASSWORD에 담는다 (취소하면 1). 잘못 입력하면 경고 후
+# 다시 묻는다 - 서브셸 캡처를 쓰지 않아 경고창이 화면에 그대로 뜬다.
+TUI_PASSWORD=''
 tui_read_password() {
 	local first second
+	TUI_PASSWORD=''
 	while true; do
 		first="$(tui --passwordbox "$1\n(8-63 characters)" 10 64)" || return 1
 		if ! validate_password "${first}"; then
-			tui_message 'Password must be 8-63 printable ASCII characters.'
+			tui_message "Invalid password (${#first} characters).\n\nUse 8-63 characters (letters, numbers, symbols).\nPress OK and type it again."
 			continue
 		fi
 		second="$(tui --passwordbox 'Type the password again' 10 64)" || return 1
 		if [ "${first}" != "${second}" ]; then
-			tui_message 'Passwords do not match. Try again.'
+			tui_message 'Passwords do not match.\n\nPress OK and type it again.'
 			continue
 		fi
-		printf '%s' "${first}"
+		TUI_PASSWORD="${first}"
 		return 0
 	done
 }
@@ -606,7 +612,8 @@ tui_start() {
 		validate_ssid "${ssid}" && break
 		tui_message 'SSID must be 1-32 bytes.'
 	done
-	password="$(tui_read_password 'AP Wi-Fi password')" || return 0
+	tui_read_password 'AP Wi-Fi password' || return 0
+	password="${TUI_PASSWORD}"
 	band="$(tui --menu 'Wi-Fi band' 12 64 2 \
 		'2.4GHz' 'most compatible (channel 6)' \
 		'5GHz' 'less crowded (channel 36)')" || return 0
@@ -659,7 +666,8 @@ tui_stop() {
 			validate_ssid "${ssid}" && break
 			tui_message 'SSID must be 1-32 bytes.'
 		done
-		password="$(tui_read_password 'Wi-Fi password')" || return 0
+		tui_read_password 'Wi-Fi password' || return 0
+		password="${TUI_PASSWORD}"
 	fi
 	tui --yesno 'Turn off AP mode and return to normal Wi-Fi now?\n\nAP clients (and an SSH session over the AP) will disconnect.' 12 68 || return 0
 	clear
