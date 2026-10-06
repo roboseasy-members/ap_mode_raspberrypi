@@ -550,6 +550,20 @@ do_stop() {
 	launch_worker stop "${ssid}" "${password}" '' '' '' 'false'
 }
 
+# 전환 직전에 접속 정보를 터미널에 남긴다 - 와이파이 SSH가 끊겨도
+# 화면에 남아 있어 새 IP를 알 수 있다.
+print_ap_connection_info() {
+	local ssid="$1" address="$2" login_user
+	login_user="${SUDO_USER:-$(id -un)}"
+	printf '\n%s\n' '=================================================='
+	printf ' AP mode will start now\n'
+	printf '   Wi-Fi name (SSID) : %s\n' "${ssid}"
+	printf '   Pi IP address     : %s\n' "${address%/*}"
+	printf '   Connect           : join "%s", then\n' "${ssid}"
+	printf '                       ssh %s@%s\n' "${login_user}" "${address%/*}"
+	printf '%s\n\n' '=================================================='
+}
+
 is_ssh_over_wifi() {
 	local server_ip
 	server_ip="$(awk '{print $3}' <<<"${SSH_CONNECTION:-}")"
@@ -635,6 +649,7 @@ tui_start() {
 	fi
 	tui --yesno "${summary}\n\nApply now?" 20 72 || return 0
 	clear
+	print_ap_connection_info "${ssid}" "${DEFAULT_AP_ADDRESS}"
 	if do_start "${ssid}" "${password}" "${band}" "${channel}" "${DEFAULT_AP_ADDRESS}" "${is_autostart}"; then
 		tui_message "OK: ${LAST_RESULT_MESSAGE}\n\n$(status_text)"
 	else
@@ -728,6 +743,7 @@ cli_start() {
 	# 설치(인터넷 필요)보다 입력 검증을 먼저 한다.
 	validate_start_inputs "${ssid}" "${password}" "${band}" "${channel}" "${address}"
 	install_dependencies
+	print_ap_connection_info "${ssid}" "${address}"
 	if do_start "${ssid}" "${password}" "${band}" "${channel}" "${address}" "${is_autostart}"; then
 		log "OK: ${LAST_RESULT_MESSAGE}"
 	else
